@@ -2,14 +2,27 @@ import express from "express";
 import cors from "cors";
 import Replicate from "replicate";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
 const app = express();
+
+// 🔒 Basic Security + Limits
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-// PRODUCT DIMENSION MAP
+// 🚫 Rate limiting (prevents abuse)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20
+});
+app.use(limiter);
+
+// 🔐 Secret key protection
+const FORGE_SECRET = process.env.FORGE_SECRET;
+
+// 🧠 Product Dimension Map
 const PRODUCT_CATALOG = {
   "SKU-17193": { name: "MERCH BEANIE", w: 1200, h: 1200 },
   "SKU-17192": { name: "MERCH SOCKS", w: 562, h: 2244 },
@@ -29,31 +42,45 @@ const PRODUCT_CATALOG = {
   "SKU-JAR-09": { name: "9oz SOY CANDLE", w: 1500, h: 1000 }
 };
 
+// 🤖 Replicate AI
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN
 });
 
-// STATUS PAGE
+// 🟢 Status Check Route
 app.get("/", (req, res) => {
   res.send("🏺 SENSI FORGE: ACTIVE");
 });
 
-// FORGE ENDPOINT
+// 🔥 Main Forge Endpoint
 app.post("/forge-merch", async (req, res) => {
+
+  const clientSecret = req.headers["x-forge-secret"];
+
+  if (!clientSecret || clientSecret !== FORGE_SECRET) {
+    return res.status(403).json({
+      success: false,
+      error: "Unauthorized Forge Access"
+    });
+  }
+
   const { userImage, selectedSku, tagline } = req.body;
 
   const product = PRODUCT_CATALOG[selectedSku] || PRODUCT_CATALOG["SKU-11009"];
 
   try {
+
+    console.log(`🚀 Forging ${product.name} at ${product.w}x${product.h}`);
+
     const output = await replicate.run(
       "tencentarc/instant-id-multicontrolnet:35324a7df2397e6e57dfd8f4f9d2910425f5123109c8c3ed035e769aeff9ff3c",
       {
         input: {
           face_image: userImage,
-          prompt: `Professional ${product.name} design featuring text "${tagline}", cinematic lighting, masterpiece, 8k resolution`,
+          prompt: `Professional ${product.name} design featuring text "${tagline}", cinematic lighting, masterpiece, ultra high resolution`,
           width: product.w,
           height: product.h,
-          negative_prompt: "low quality, blurry, distorted, messy text"
+          negative_prompt: "low quality, blurry, distorted face, messy text"
         }
       }
     );
@@ -65,7 +92,9 @@ app.post("/forge-merch", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({
       success: false,
       error: "The Forge encountered a critical failure."
@@ -73,4 +102,6 @@ app.post("/forge-merch", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000, () => {
+  console.log("🔥 Sensi Forge running...");
+});
