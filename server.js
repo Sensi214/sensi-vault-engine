@@ -12,17 +12,18 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-// 🚫 Rate limiting (prevents abuse)
+// 🚫 Rate limiting (prevents abuse - 20 requests per 15 mins)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20
+  max: 20,
+  message: { success: false, error: "Too many forges! Please wait 15 minutes." }
 });
 app.use(limiter);
 
-// 🔐 Secret key protection
+// 🔐 Secret key protection from Render Env Variables
 const FORGE_SECRET = process.env.FORGE_SECRET;
 
-// 🧠 Product Dimension Map
+// 🧠 Product Dimension Map (InkedJoy Catalog)
 const PRODUCT_CATALOG = {
   "SKU-17193": { name: "MERCH BEANIE", w: 1200, h: 1200 },
   "SKU-17192": { name: "MERCH SOCKS", w: 562, h: 2244 },
@@ -42,21 +43,21 @@ const PRODUCT_CATALOG = {
   "SKU-JAR-09": { name: "9oz SOY CANDLE", w: 1500, h: 1000 }
 };
 
-// 🤖 Replicate AI
+// 🤖 Replicate AI Connection
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN
 });
 
-// 🟢 Status Check Route
+// 🟢 Status Check Route (Browser Test)
 app.get("/", (req, res) => {
-  res.send("🏺 SENSI FORGE: ACTIVE");
+  res.send('<body style="background:#000;color:#0f0;text-align:center;padding:50px;font-family:monospace;"><h1>🏺 SENSI FORGE: ACTIVE</h1></body>');
 });
 
 // 🔥 Main Forge Endpoint
 app.post("/forge-merch", async (req, res) => {
-
   const clientSecret = req.headers["x-forge-secret"];
 
+  // Check if the key in the header matches your FORGE_SECRET variable
   if (!clientSecret || clientSecret !== FORGE_SECRET) {
     return res.status(403).json({
       success: false,
@@ -65,11 +66,9 @@ app.post("/forge-merch", async (req, res) => {
   }
 
   const { userImage, selectedSku, tagline } = req.body;
-
   const product = PRODUCT_CATALOG[selectedSku] || PRODUCT_CATALOG["SKU-11009"];
 
   try {
-
     console.log(`🚀 Forging ${product.name} at ${product.w}x${product.h}`);
 
     const output = await replicate.run(
@@ -92,9 +91,7 @@ app.post("/forge-merch", async (req, res) => {
     });
 
   } catch (err) {
-
     console.error(err);
-
     res.status(500).json({
       success: false,
       error: "The Forge encountered a critical failure."
