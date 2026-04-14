@@ -1,0 +1,41 @@
+/* SENSI Holographic Scan Container */
+#forge-scanning-ui {
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid #ff00ff;
+  box-shadow: 0 0 20px #ff00ff;
+  font-family: 'Orbitron', sans-serif;
+  color: #ff00ff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Holographic Noise Layer */
+#forge-scanning-ui::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 0, 255, 0) 50%, rgba(255, 0, 255, 0.15) 50%),
+    linear-gradient(90deg, rgba(255, 0, 255, 0.05), rgba(255, 255, 255, 0.02), rgba(255, 0, 255, 0.05));
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Magenta Scanning Line */
+#forge-scanning-ui::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 0, 255, 0.7);
+  top: 0;
+  box-shadow: 0 0 12px #ff00ff;
+  animation: sensi-scan 4s linear infinite;
+}
+
+/* Scan Animation */
+@keyframes sensi-scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
